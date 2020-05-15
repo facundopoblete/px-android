@@ -5,7 +5,7 @@ import android.support.annotation.Nullable;
 import com.mercadopago.android.px.configuration.DynamicFragmentConfiguration;
 import com.mercadopago.android.px.configuration.ReviewAndConfirmConfiguration;
 import com.mercadopago.android.px.internal.features.review_and_confirm.models.ItemsModel;
-import com.mercadopago.android.px.internal.features.review_and_confirm.models.PaymentModel;
+import com.mercadopago.android.px.internal.features.review_and_confirm.models.ReviewAndConfirmViewModel;
 import com.mercadopago.android.px.internal.features.review_and_confirm.models.SummaryModel;
 import com.mercadopago.android.px.internal.features.review_and_confirm.models.TermsAndConditionsModel;
 import com.mercadopago.android.px.internal.view.ActionDispatcher;
@@ -37,7 +37,7 @@ public class ReviewAndConfirmContainer extends Component<ReviewAndConfirmContain
 
     public static class Props {
         /* default */ @Nullable final TermsAndConditionsModel mercadoPagoTermsAndConditionsModel;
-        /* default */ @NonNull final PaymentModel paymentModel;
+        /* default */ @NonNull final ReviewAndConfirmViewModel reviewAndConfirmViewModel;
         /* default */ @NonNull final SummaryModel summaryModel;
         /* default */ @NonNull final ReviewAndConfirmConfiguration preferences;
         /* default */ @NonNull final DynamicFragmentConfiguration dynamicFragments;
@@ -46,7 +46,7 @@ public class ReviewAndConfirmContainer extends Component<ReviewAndConfirmContain
         /* default */ @Nullable final Payer payer;
 
         public Props(@Nullable final TermsAndConditionsModel mercadoPagoTermsAndConditionsModel,
-            @NonNull final PaymentModel paymentModel,
+            @NonNull final ReviewAndConfirmViewModel reviewAndConfirmViewModel,
             @NonNull final SummaryModel summaryModel,
             @NonNull final ReviewAndConfirmConfiguration preferences,
             @NonNull final DynamicFragmentConfiguration dynamicFragments,
@@ -55,7 +55,7 @@ public class ReviewAndConfirmContainer extends Component<ReviewAndConfirmContain
             @Nullable final Payer payer) {
 
             this.mercadoPagoTermsAndConditionsModel = mercadoPagoTermsAndConditionsModel;
-            this.paymentModel = paymentModel;
+            this.reviewAndConfirmViewModel = reviewAndConfirmViewModel;
             this.summaryModel = summaryModel;
             this.preferences = preferences;
             this.dynamicFragments = dynamicFragments;

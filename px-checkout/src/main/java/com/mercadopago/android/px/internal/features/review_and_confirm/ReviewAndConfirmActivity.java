@@ -18,30 +18,28 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.LinearLayout;
-import com.mercadolibre.android.ui.widgets.MeliButton;
 import com.mercadolibre.android.ui.widgets.MeliSnackbar;
 import com.mercadopago.android.px.R;
-import com.mercadopago.android.px.addons.BehaviourProvider;
-import com.mercadopago.android.px.addons.model.SecurityValidationData;
 import com.mercadopago.android.px.configuration.AdvancedConfiguration;
 import com.mercadopago.android.px.configuration.ReviewAndConfirmConfiguration;
 import com.mercadopago.android.px.core.DynamicDialogCreator;
 import com.mercadopago.android.px.internal.base.PXActivity;
 import com.mercadopago.android.px.internal.di.ConfigurationModule;
-import com.mercadopago.android.px.internal.di.NetworkModule;
 import com.mercadopago.android.px.internal.di.Session;
 import com.mercadopago.android.px.internal.features.business_result.BusinessPaymentResultActivity;
 import com.mercadopago.android.px.internal.features.cardvault.CardVaultActivity;
+import com.mercadopago.android.px.internal.features.checkout.CheckoutActivity;
 import com.mercadopago.android.px.internal.features.explode.ExplodeDecorator;
-import com.mercadopago.android.px.internal.features.explode.ExplodeParams;
 import com.mercadopago.android.px.internal.features.explode.ExplodingFragment;
+import com.mercadopago.android.px.internal.features.pay_button.PayButton;
+import com.mercadopago.android.px.internal.features.pay_button.PayButtonFragment;
 import com.mercadopago.android.px.internal.features.payment_result.PaymentResultActivity;
 import com.mercadopago.android.px.internal.features.plugins.PaymentProcessorActivity;
 import com.mercadopago.android.px.internal.features.review_and_confirm.components.ReviewAndConfirmContainer;
 import com.mercadopago.android.px.internal.features.review_and_confirm.components.actions.CancelPaymentAction;
 import com.mercadopago.android.px.internal.features.review_and_confirm.components.actions.ChangePaymentMethodAction;
 import com.mercadopago.android.px.internal.features.review_and_confirm.models.ItemsModel;
-import com.mercadopago.android.px.internal.features.review_and_confirm.models.PaymentModel;
+import com.mercadopago.android.px.internal.features.review_and_confirm.models.ReviewAndConfirmViewModel;
 import com.mercadopago.android.px.internal.features.review_and_confirm.models.SummaryModel;
 import com.mercadopago.android.px.internal.features.review_and_confirm.models.TermsAndConditionsModel;
 import com.mercadopago.android.px.internal.font.FontHelper;
@@ -52,9 +50,8 @@ import com.mercadopago.android.px.internal.util.TextUtil;
 import com.mercadopago.android.px.internal.view.ActionDispatcher;
 import com.mercadopago.android.px.internal.view.ComponentManager;
 import com.mercadopago.android.px.internal.view.LinkableTextComponent;
-import com.mercadopago.android.px.internal.view.OnSingleClickListener;
 import com.mercadopago.android.px.internal.viewmodel.BusinessPaymentModel;
-import com.mercadopago.android.px.internal.viewmodel.PayButtonViewModel;
+import com.mercadopago.android.px.internal.viewmodel.PaymentModel;
 import com.mercadopago.android.px.internal.viewmodel.PostPaymentAction;
 import com.mercadopago.android.px.model.Action;
 import com.mercadopago.android.px.model.Card;
@@ -63,6 +60,7 @@ import com.mercadopago.android.px.model.Payer;
 import com.mercadopago.android.px.model.PaymentRecovery;
 import com.mercadopago.android.px.model.display_info.LinkableText;
 import com.mercadopago.android.px.model.exceptions.MercadoPagoError;
+import org.jetbrains.annotations.NotNull;
 
 import static android.content.Intent.FLAG_ACTIVITY_FORWARD_RESULT;
 import static com.mercadopago.android.px.core.MercadoPagoCheckout.EXTRA_ERROR;
@@ -73,10 +71,9 @@ import static com.mercadopago.android.px.internal.features.Constants.RESULT_ERRO
 import static com.mercadopago.android.px.internal.util.ErrorUtil.isErrorResult;
 
 public final class ReviewAndConfirmActivity extends PXActivity<ReviewAndConfirmPresenter> implements
-    ReviewAndConfirm.View, ActionDispatcher, ExplodingFragment.ExplodingAnimationListener {
+    ReviewAndConfirm.View, ActionDispatcher, PayButton.Handler {
 
     private static final int REQ_CODE_CARD_VAULT = 1;
-    private static final int REQ_CODE_BIOMETRICS = 2;
 
     private static final String EXTRA_TERMS_AND_CONDITIONS = "extra_terms_and_conditions";
     private static final String EXTRA_DISPLAY_INFO_LINKABLE_TEXT =
@@ -89,14 +86,14 @@ public final class ReviewAndConfirmActivity extends PXActivity<ReviewAndConfirmP
     private static final String TAG_DYNAMIC_DIALOG = "tag_dynamic_dialog";
     private static final String TAG_EXPLODING_FRAGMENT = "TAG_EXPLODING_FRAGMENT";
 
-    private MeliButton confirmButton;
+    private PayButtonFragment payButtonFragment;
     private LinearLayout floatingLayout;
 
     public static Intent getIntentForAction(@NonNull final Context context,
         @NonNull final String merchantPublicKey,
         @Nullable final TermsAndConditionsModel mercadoPagoTermsAndConditions,
         @Nullable final LinkableText linkableText,
-        @NonNull final PaymentModel paymentModel,
+        @NonNull final ReviewAndConfirmViewModel reviewAndConfirmViewModel,
         @NonNull final SummaryModel summaryModel,
         @NonNull final ItemsModel itemsModel,
         @Nullable final TermsAndConditionsModel discountTermsAndConditions,
@@ -106,7 +103,7 @@ public final class ReviewAndConfirmActivity extends PXActivity<ReviewAndConfirmP
         intent.putExtra(EXTRA_PUBLIC_KEY, merchantPublicKey);
         intent.putExtra(EXTRA_TERMS_AND_CONDITIONS, mercadoPagoTermsAndConditions);
         intent.putExtra(EXTRA_DISPLAY_INFO_LINKABLE_TEXT, (Parcelable) linkableText);
-        intent.putExtra(EXTRA_PAYMENT_MODEL, paymentModel);
+        intent.putExtra(EXTRA_PAYMENT_MODEL, reviewAndConfirmViewModel);
         intent.putExtra(EXTRA_SUMMARY_MODEL, summaryModel);
         intent.putExtra(EXTRA_ITEMS, itemsModel);
         intent.putExtra(EXTRA_DISCOUNT_TERMS_AND_CONDITIONS, discountTermsAndConditions);
@@ -183,9 +180,6 @@ public final class ReviewAndConfirmActivity extends PXActivity<ReviewAndConfirmP
         case REQ_CODE_CARD_VAULT:
             getWindow().getDecorView().post(() -> resolveCardVaultRequest(resultCode, data));
             break;
-        case REQ_CODE_BIOMETRICS:
-            handleBiometricsResult(resultCode);
-            break;
         case ErrorUtil.ERROR_REQUEST_CODE:
             getWindow().getDecorView().post(() -> resolveErrorRequest(resultCode, data));
             break;
@@ -195,17 +189,8 @@ public final class ReviewAndConfirmActivity extends PXActivity<ReviewAndConfirmP
         }
     }
 
-    private void handleBiometricsResult(final int resultCode) {
-        if (resultCode == RESULT_OK) {
-            presenter.onPaymentConfirm();
-        } else {
-            presenter.trackSecurityFriction();
-        }
-        confirmButton.setState(MeliButton.State.NORMAL);
-    }
-
     private void initializeViews() {
-        confirmButton = findViewById(R.id.floating_confirm);
+        payButtonFragment = (PayButtonFragment) getSupportFragmentManager().findFragmentById(R.id.pay_button);
         initToolbar();
         initBody();
     }
@@ -232,25 +217,12 @@ public final class ReviewAndConfirmActivity extends PXActivity<ReviewAndConfirmP
 
     private void initFloatingButton(final ViewGroup scrollView, @Nullable final LinkableText linkableText) {
         floatingLayout = findViewById(R.id.floating_layout);
-        confirmButton.setOnClickListener(new OnSingleClickListener() {
-            @Override
-            public void onSingleClick(final View view) {
-                presenter.startSecuredPayment();
-            }
-        });
-
         if (linkableText != null && TextUtil.isNotEmpty(linkableText.getText())) {
             final LinkableTextComponent linkableTextComponent = new LinkableTextComponent(linkableText);
             floatingLayout.addView(linkableTextComponent.render(floatingLayout), 0);
         }
 
         configureFloatingBehaviour(scrollView, floatingLayout);
-    }
-
-    @Override
-    public void startSecurityValidation(@NonNull final SecurityValidationData data) {
-        confirmButton.setState(MeliButton.State.DISABLED);
-        BehaviourProvider.getSecurityBehaviour().startValidation(this, data, REQ_CODE_BIOMETRICS);
     }
 
     private void configureFloatingBehaviour(final ViewGroup scrollView, final View floatingConfirmLayout) {
@@ -305,7 +277,7 @@ public final class ReviewAndConfirmActivity extends PXActivity<ReviewAndConfirmP
 
         if (extras != null) {
             final TermsAndConditionsModel termsAndConditionsModel = extras.getParcelable(EXTRA_TERMS_AND_CONDITIONS);
-            final PaymentModel paymentModel = extras.getParcelable(EXTRA_PAYMENT_MODEL);
+            final ReviewAndConfirmViewModel reviewAndConfirmViewModel = extras.getParcelable(EXTRA_PAYMENT_MODEL);
 
             final SummaryModel summaryModel = extras.getParcelable(EXTRA_SUMMARY_MODEL);
             final ItemsModel itemsModel = extras.getParcelable(EXTRA_ITEMS);
@@ -325,7 +297,7 @@ public final class ReviewAndConfirmActivity extends PXActivity<ReviewAndConfirmP
 
             ReviewAndConfirmContainer.Props reviewAndConfirmContainerProps =
                 new ReviewAndConfirmContainer.Props(termsAndConditionsModel,
-                    paymentModel,
+                    reviewAndConfirmViewModel,
                     summaryModel,
                     reviewAndConfirmConfiguration,
                     advancedConfiguration.getDynamicFragmentConfiguration(),
@@ -405,11 +377,6 @@ public final class ReviewAndConfirmActivity extends PXActivity<ReviewAndConfirmP
         ErrorUtil.startErrorActivity(this, error);
     }
 
-    @Override
-    public void setPayButtonText(@NonNull final PayButtonViewModel payButtonViewModel) {
-        confirmButton.setText(payButtonViewModel.getButtonText(this));
-    }
-
     /**
      * When payment needs to start the visual payment processor it won't come back to review and confirm. The result for
      * the start activity will be delegated to Checkout activity.
@@ -418,42 +385,6 @@ public final class ReviewAndConfirmActivity extends PXActivity<ReviewAndConfirmP
     public void showPaymentProcessor() {
         overrideTransitionWithNoAnimation();
         PaymentProcessorActivity.startWithForwardResult(this);
-        finish();
-    }
-
-    /**
-     * When payment is shown inside congrats the user can't return to review and confirm. Result for this activity will
-     * be transferred.
-     */
-    @Override
-    public void showResult(@NonNull final BusinessPaymentModel businessPaymentModel) {
-        overrideTransitionFadeInFadeOut();
-        final Intent intent = BusinessPaymentResultActivity.getIntent(this, businessPaymentModel);
-        intent.addFlags(FLAG_ACTIVITY_FORWARD_RESULT);
-        startActivity(intent);
-        finish();
-    }
-
-    /**
-     * When payment is shown inside congrats the user can't return to review and confirm. Result for this activity will
-     * be transferred.
-     */
-    @Override
-    public void showResult(@NonNull final com.mercadopago.android.px.internal.viewmodel.PaymentModel paymentModel) {
-        overrideTransitionFadeInFadeOut();
-        final Intent intent = PaymentResultActivity.getIntent(this, paymentModel);
-        intent.addFlags(FLAG_ACTIVITY_FORWARD_RESULT);
-        startActivity(intent);
-        finish();
-    }
-
-    @Override
-    public void cancelCheckoutAndInformError(@NonNull final MercadoPagoError mercadoPagoError) {
-        //TODO handle Error better - It goes back to checkout activity.
-        // Goes to Checkout activity and provides error object.
-        final Intent intent = new Intent();
-        intent.putExtra(EXTRA_ERROR, mercadoPagoError);
-        setResult(RESULT_ERROR, intent);
         finish();
     }
 
@@ -467,67 +398,6 @@ public final class ReviewAndConfirmActivity extends PXActivity<ReviewAndConfirmP
                     null;
             presenter.onError(mercadoPagoError);
         }
-    }
-
-    //TODO remove duplication
-    void resolveCardVaultRequest(final int resultCode, final Intent data) {
-        if (resultCode == RESULT_OK) {
-            presenter.onCardFlowResponse();
-        } else {
-            final MercadoPagoError mercadoPagoError =
-                isErrorResult(data) ? (MercadoPagoError) data.getSerializableExtra(EXTRA_ERROR) : null;
-            if (mercadoPagoError == null) {
-                presenter.onCardFlowCancel();
-            } else {
-                presenter.onError(mercadoPagoError);
-            }
-        }
-    }
-
-    @Override
-    public void startLoadingButton(final int paymentTimeout, @NonNull final PayButtonViewModel payButtonViewModel) {
-        final ExplodeParams explodeParams = ExplodingFragment.getParams(confirmButton,
-            payButtonViewModel.getButtonProgressText(this), paymentTimeout);
-        final FragmentManager supportFragmentManager = getSupportFragmentManager();
-        final ExplodingFragment explodingFragment = ExplodingFragment.newInstance(explodeParams);
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.exploding_frame, explodingFragment, TAG_EXPLODING_FRAGMENT)
-            .commitAllowingStateLoss();
-        supportFragmentManager.executePendingTransactions();
-    }
-
-    @Override
-    public void cancelLoadingButton() {
-        final FragmentManager supportFragmentManager = getSupportFragmentManager();
-        final Fragment fragment = supportFragmentManager.findFragmentByTag(TAG_EXPLODING_FRAGMENT);
-        if (fragment != null && fragment.isAdded()) {
-            supportFragmentManager
-                .beginTransaction()
-                .remove(fragment)
-                .commitNowAllowingStateLoss();
-        }
-    }
-
-    @Override
-    public void finishLoading(@NonNull final ExplodeDecorator decorator) {
-        final FragmentManager supportFragmentManager = getSupportFragmentManager();
-        final Fragment fragment = supportFragmentManager.findFragmentByTag(TAG_EXPLODING_FRAGMENT);
-        if (fragment instanceof ExplodingFragment && fragment.isAdded() && fragment.isVisible()) {
-            final ExplodingFragment explodingFragment = (ExplodingFragment) fragment;
-            explodingFragment.finishLoading(decorator);
-        } else {
-            presenter.hasFinishPaymentAnimation();
-        }
-    }
-
-    @Override
-    public void hideConfirmButton() {
-        confirmButton.setVisibility(View.GONE);
-    }
-
-    @Override
-    public void showConfirmButton() {
-        confirmButton.setVisibility(View.VISIBLE);
     }
 
     @SuppressLint("Range")
@@ -545,13 +415,6 @@ public final class ReviewAndConfirmActivity extends PXActivity<ReviewAndConfirmP
         }
     }
 
-    @Override
-    public void onAnimationFinished() {
-        //we attach the view here for fix bug 5bda1d3f5de03a001b24f69a reported in bugsnag
-        presenter.attachView(this);
-        presenter.hasFinishPaymentAnimation();
-    }
-
     /**
      * Exit review and confirm and notify the origin activity that payment method change button has been pressed.
      */
@@ -559,6 +422,28 @@ public final class ReviewAndConfirmActivity extends PXActivity<ReviewAndConfirmP
     public void finishAndChangePaymentMethod() {
         setResult(RESULT_CHANGE_PAYMENT_METHOD);
         finish();
+    }
+
+    @Override
+    public void prePayment(@NotNull final PayButton.OnReadyForPaymentCallback callback) {
+        presenter.onPrePayment(callback);
+    }
+
+    @Override
+    public void onPaymentFinished(@NotNull final PaymentModel paymentModel) {
+        presenter.onPaymentFinished(paymentModel);
+    }
+
+    @Override
+    public void showResult(@NonNull final PaymentModel model) {
+        overrideTransitionIn();
+        PaymentResultActivity.startWithForwardResult(this, model);
+    }
+
+    @Override
+    public void showResult(@NonNull final BusinessPaymentModel model) {
+        overrideTransitionIn();
+        BusinessPaymentResultActivity.startWithForwardResult(this, model);
     }
 
     public static final class ContainerProps {

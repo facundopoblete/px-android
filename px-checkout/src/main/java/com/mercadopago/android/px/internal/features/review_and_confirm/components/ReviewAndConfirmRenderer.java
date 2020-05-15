@@ -15,7 +15,7 @@ import com.mercadopago.android.px.internal.features.review_and_confirm.component
 import com.mercadopago.android.px.internal.features.review_and_confirm.components.items.ReviewItems;
 import com.mercadopago.android.px.internal.features.review_and_confirm.components.payer_information.PayerInformationComponent;
 import com.mercadopago.android.px.internal.features.review_and_confirm.components.payment_method.PaymentMethodComponent;
-import com.mercadopago.android.px.internal.features.review_and_confirm.models.PaymentModel;
+import com.mercadopago.android.px.internal.features.review_and_confirm.models.ReviewAndConfirmViewModel;
 import com.mercadopago.android.px.internal.navigation.DefaultPayerInformationDriver;
 import com.mercadopago.android.px.internal.util.FragmentUtil;
 import com.mercadopago.android.px.internal.view.ActionDispatcher;
@@ -81,7 +81,7 @@ public class ReviewAndConfirmRenderer extends Renderer<ReviewAndConfirmContainer
             }
         }
 
-        addPaymentMethod(component.props.paymentModel, component.getDispatcher(), linearLayout);
+        addPaymentMethod(component.props.reviewAndConfirmViewModel, component.getDispatcher(), linearLayout);
 
         if (component.props.preferences.hasCustomBottomView()) {
             FragmentUtil.addFragmentInside(linearLayout,
@@ -143,11 +143,11 @@ public class ReviewAndConfirmRenderer extends Renderer<ReviewAndConfirmContainer
         return linearLayout;
     }
 
-    private void addPaymentMethod(final PaymentModel paymentModel,
+    private void addPaymentMethod(final ReviewAndConfirmViewModel reviewAndConfirmViewModel,
         final ActionDispatcher dispatcher,
         final ViewGroup parent) {
         final PaymentMethodComponent paymentMethodComponent =
-            new PaymentMethodComponent(paymentModel, () -> dispatcher.dispatch(new ChangePaymentMethodAction()));
+            new PaymentMethodComponent(reviewAndConfirmViewModel, () -> dispatcher.dispatch(new ChangePaymentMethodAction()));
 
         final View paymentView = paymentMethodComponent.render(parent);
         parent.addView(paymentView);

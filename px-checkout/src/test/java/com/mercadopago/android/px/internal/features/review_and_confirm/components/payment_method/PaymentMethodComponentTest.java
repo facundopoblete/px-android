@@ -1,6 +1,6 @@
 package com.mercadopago.android.px.internal.features.review_and_confirm.components.payment_method;
 
-import com.mercadopago.android.px.internal.features.review_and_confirm.models.PaymentModel;
+import com.mercadopago.android.px.internal.features.review_and_confirm.models.ReviewAndConfirmViewModel;
 import com.mercadopago.android.px.internal.view.CompactComponent;
 import com.mercadopago.android.px.model.PaymentTypes;
 import org.junit.Before;
@@ -18,7 +18,7 @@ public class PaymentMethodComponentTest {
 
     @Mock
     private
-    PaymentModel model;
+    ReviewAndConfirmViewModel model;
 
     private PaymentMethodComponent component;
 

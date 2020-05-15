@@ -6,7 +6,7 @@ import com.mercadopago.android.px.model.Issuer;
 import com.mercadopago.android.px.model.PaymentMethod;
 import com.mercadopago.android.px.model.Token;
 
-public class PaymentModel implements Parcelable {
+public class ReviewAndConfirmViewModel implements Parcelable {
 
     public final String paymentMethodId;
     public final String lastFourDigits;
@@ -18,7 +18,7 @@ public class PaymentModel implements Parcelable {
     public final long issuerId;
     private final String cardId;
 
-    public PaymentModel(final PaymentMethod paymentMethod,
+    public ReviewAndConfirmViewModel(final PaymentMethod paymentMethod,
         final Token token,
         final Issuer issuer,
         final boolean moreThanOnePaymentMethod) {
@@ -35,7 +35,7 @@ public class PaymentModel implements Parcelable {
         this.moreThanOnePaymentMethod = moreThanOnePaymentMethod;
     }
 
-    protected PaymentModel(final Parcel in) {
+    protected ReviewAndConfirmViewModel(final Parcel in) {
         paymentMethodId = in.readString();
         lastFourDigits = in.readString();
         if (in.readByte() == 0) {
@@ -51,15 +51,15 @@ public class PaymentModel implements Parcelable {
         cardId = in.readString();
     }
 
-    public static final Creator<PaymentModel> CREATOR = new Creator<PaymentModel>() {
+    public static final Creator<ReviewAndConfirmViewModel> CREATOR = new Creator<ReviewAndConfirmViewModel>() {
         @Override
-        public PaymentModel createFromParcel(final Parcel in) {
-            return new PaymentModel(in);
+        public ReviewAndConfirmViewModel createFromParcel(final Parcel in) {
+            return new ReviewAndConfirmViewModel(in);
         }
 
         @Override
-        public PaymentModel[] newArray(final int size) {
-            return new PaymentModel[size];
+        public ReviewAndConfirmViewModel[] newArray(final int size) {
+            return new ReviewAndConfirmViewModel[size];
         }
     };
 

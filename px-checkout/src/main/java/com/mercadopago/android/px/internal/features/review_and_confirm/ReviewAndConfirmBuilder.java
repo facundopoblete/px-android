@@ -9,7 +9,7 @@ import com.mercadopago.android.px.internal.di.ConfigurationModule;
 import com.mercadopago.android.px.internal.di.Session;
 import com.mercadopago.android.px.internal.features.review_and_confirm.models.ItemsModel;
 import com.mercadopago.android.px.internal.features.review_and_confirm.models.LineSeparatorType;
-import com.mercadopago.android.px.internal.features.review_and_confirm.models.PaymentModel;
+import com.mercadopago.android.px.internal.features.review_and_confirm.models.ReviewAndConfirmViewModel;
 import com.mercadopago.android.px.internal.features.review_and_confirm.models.SummaryModel;
 import com.mercadopago.android.px.internal.features.review_and_confirm.models.TermsAndConditionsModel;
 import com.mercadopago.android.px.internal.repository.AmountRepository;
@@ -78,7 +78,8 @@ public class ReviewAndConfirmBuilder {
                 resources.getString(R.string.px_discount_terms_and_conditions_linked_message),
                 LineSeparatorType.BOTTOM_LINE_SEPARATOR) : null;
 
-        final PaymentModel paymentModel = new PaymentModel(paymentMethod, token, issuer, hasExtraPaymentMethods);
+        final ReviewAndConfirmViewModel
+            reviewAndConfirmViewModel = new ReviewAndConfirmViewModel(paymentMethod, token, issuer, hasExtraPaymentMethods);
 
         final PayerCost payerCost = userSelectionRepository.getPayerCost();
         final SummaryModel summaryModel =
@@ -98,7 +99,7 @@ public class ReviewAndConfirmBuilder {
             publicKey,
             mercadoPagoTermsAndConditions,
             linkableText,
-            paymentModel,
+            reviewAndConfirmViewModel,
             summaryModel,
             itemsModel,
             discountTermsAndConditions,

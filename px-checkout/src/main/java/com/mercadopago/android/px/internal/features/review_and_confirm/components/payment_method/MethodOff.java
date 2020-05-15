@@ -6,7 +6,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 import com.mercadopago.android.px.R;
-import com.mercadopago.android.px.internal.features.review_and_confirm.models.PaymentModel;
+import com.mercadopago.android.px.internal.features.review_and_confirm.models.ReviewAndConfirmViewModel;
 import com.mercadopago.android.px.internal.util.MercadoPagoUtil;
 import com.mercadopago.android.px.internal.util.ResourceUtil;
 import com.mercadopago.android.px.internal.util.ViewUtils;
@@ -25,7 +25,7 @@ import com.mercadopago.android.px.internal.view.CompactComponent;
             this.time = time;
         }
 
-        /* default */ static Props createFrom(final PaymentModel props) {
+        /* default */ static Props createFrom(final ReviewAndConfirmViewModel props) {
             return new Props(props.paymentMethodId,
                 props.paymentMethodName,
                 props.accreditationTime);

@@ -7,7 +7,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import com.mercadopago.android.px.R;
 import com.mercadopago.android.px.internal.di.Session;
-import com.mercadopago.android.px.internal.features.review_and_confirm.models.PaymentModel;
+import com.mercadopago.android.px.internal.features.review_and_confirm.models.ReviewAndConfirmViewModel;
 import com.mercadopago.android.px.internal.util.ResourceUtil;
 import com.mercadopago.android.px.internal.util.TextUtil;
 import com.mercadopago.android.px.internal.util.ViewUtils;
@@ -28,7 +28,7 @@ import com.mercadopago.android.px.services.Callback;
             this.title = title;
         }
 
-        /* default */ static Props createFrom(final PaymentModel props) {
+        /* default */ static Props createFrom(final ReviewAndConfirmViewModel props) {
             return new Props(props.paymentMethodId, props.paymentMethodName);
         }
     }
